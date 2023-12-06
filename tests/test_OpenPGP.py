@@ -2,22 +2,24 @@ import nose
 import os.path
 import OpenPGP
 
+
 class TestASCIIArmor:
     def readLocalFile(self, filename):
         return open(os.path.dirname(__file__) + filename, 'r').read()
 
     def test_unarmor_one(self):
-         armored = self.readLocalFile('/data/helloKey.asc')
-         _, unarmored = OpenPGP.unarmor(armored)[0]
-         message = OpenPGP.Message.parse(unarmored)
-         nose.tools.assert_equal(message[0].fingerprint(), '421F28FEAAD222F856C8FFD5D4D54EA16F87040E')
+        armored = self.readLocalFile('/data/helloKey.asc')
+        _, unarmored = OpenPGP.unarmor(armored)[0]
+        message = OpenPGP.Message.parse(unarmored)
+        nose.tools.assert_equal(message[0].fingerprint(), '421F28FEAAD222F856C8FFD5D4D54EA16F87040E')
 
     def test_enarmor_one(self):
-         expected = self.readLocalFile('/data/helloKey.asc')
-         messages = OpenPGP.unarmor(expected) # [(header, data), ...]
-         header, data = messages[0]
-         actual = OpenPGP.enarmor(data, headers = [keyValue.split(': ', 1) for keyValue in header.split('\n')])
-         nose.tools.assert_equal(actual, expected)
+        expected = self.readLocalFile('/data/helloKey.asc')
+        messages = OpenPGP.unarmor(expected)  # [(header, data), ...]
+        header, data = messages[0]
+        actual = OpenPGP.enarmor(data, headers=[keyValue.split(': ', 1) for keyValue in header.split('\n')])
+        nose.tools.assert_equal(actual, expected)
+
 
 class TestSerialization:
     def one_serialization(self, path):
@@ -299,6 +301,7 @@ class TestSerialization:
     def testSymmetricNoMDC(self):
         self.one_serialization("symmetric-no-mdc.gpg")
 
+
 class TestUserID:
     def test_name_comment_email_id(self):
         packet = OpenPGP.UserIDPacket("Human Name (With Comment) <and@email.com>")
@@ -324,6 +327,7 @@ class TestUserID:
         nose.tools.assert_equal(packet.comment, None)
         nose.tools.assert_equal(packet.email, "and@email.com")
 
+
 class TestFingerprint:
     def one_fingerprint(self, path, kf):
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + path, 'rb').read())
@@ -341,10 +345,12 @@ class TestFingerprint:
     def test000035006public_key(self):
         self.one_fingerprint("000035-006.public_key", "CB7933459F59C70DF1C3FBEEDEDC3ECF689AF56D")
 
+
 class TestStreaming:
     def test_partial_results(self):
-        m = OpenPGP.Message.parse(OpenPGP.Message([OpenPGP.UserIDPacket('My name <e@example.com>'), OpenPGP.UserIDPacket('Your name <y@example.com>')]).to_bytes())
-        m[0] # Just the first one
+        m = OpenPGP.Message.parse(OpenPGP.Message([OpenPGP.UserIDPacket('My name <e@example.com>'),
+                                                   OpenPGP.UserIDPacket('Your name <y@example.com>')]).to_bytes())
+        m[0]  # Just the first one
         nose.tools.assert_equal(len(m.force()), 2)
 
     def test_file_stream(self):

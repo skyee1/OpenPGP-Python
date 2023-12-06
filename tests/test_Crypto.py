@@ -5,6 +5,7 @@ import OpenPGP.Crypto
 import Crypto.Util
 import Crypto.PublicKey.RSA
 
+
 class TestMessageVerification:
     def oneMessage(self, pkey, path):
         pkeyM = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + pkey, 'rb').read())
@@ -46,6 +47,7 @@ class TestMessageVerification:
     def testUncompressedOpsDSAsha384(self):
         self.oneMessage('pubring.gpg', 'uncompressed-ops-dsa-sha384.txt.gpg')
 
+
 class TestKeyVerification:
     def oneKeyRSA(self, path):
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + path, 'rb').read())
@@ -75,14 +77,15 @@ class TestKeyVerification:
     def testHelloKey(self):
         self.oneKeyRSA("helloKey.gpg")
 
+
 class TestDecryption:
     def oneSymmetric(self, pss, cnt, path):
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + path, 'rb').read())
         m2 = OpenPGP.Crypto.Wrapper(m).decrypt_symmetric(pss)
-        while(isinstance(m2[0], OpenPGP.CompressedDataPacket)):
+        while (isinstance(m2[0], OpenPGP.CompressedDataPacket)):
             m2 = m2[0].data
         for p in m2:
-            if(isinstance(p,OpenPGP.LiteralDataPacket)):
+            if (isinstance(p, OpenPGP.LiteralDataPacket)):
                 nose.tools.assert_equal(p.data, cnt)
 
     def testDecryptAES(self):
@@ -112,11 +115,12 @@ class TestDecryption:
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/hello.gpg', 'rb').read())
         key = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/helloKey.gpg', 'rb').read())
         m2 = OpenPGP.Crypto.Wrapper(key).decrypt(m)
-        while(isinstance(m2[0], OpenPGP.CompressedDataPacket)):
+        while (isinstance(m2[0], OpenPGP.CompressedDataPacket)):
             m2 = m2[0].data
         for p in m2:
-            if(isinstance(p,OpenPGP.LiteralDataPacket)):
+            if (isinstance(p, OpenPGP.LiteralDataPacket)):
                 nose.tools.assert_equal(p.data, b"hello\n")
+
 
 class TestEncryption:
     def testEncryptSymmetric(self):

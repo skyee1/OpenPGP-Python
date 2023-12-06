@@ -4,6 +4,7 @@ import OpenPGP
 import OpenPGP.Crypto
 import sys
 
+
 k = Crypto.PublicKey.RSA.generate(1024)
 
 nkey = OpenPGP.SecretKeyPacket((

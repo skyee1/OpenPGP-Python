@@ -6,30 +6,36 @@ from cryptography.hazmat.backends import default_backend, openssl
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding, dsa
-from cryptography.hazmat.primitives.interfaces import RSAPrivateKey, RSAPublicKey, DSAPublicKey, DSAPrivateKey
+# from cryptography.hazmat.primitives.interfaces import RSAPrivateKey, RSAPublicKey, DSAPublicKey, DSAPrivateKey
 from cryptography.exceptions import InvalidSignature
 import OpenPGP
 import hashlib, math, sys, copy, collections
 
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
+from cryptography.hazmat.primitives.asymmetric.dsa import DSAPublicKey, DSAPrivateKey
+
 __all__ = ['Wrapper']
+
 
 class Wrapper:
     """ A wrapper for using the classes from OpenPGP.py with cryptography """
+
     def __init__(self, packet):
         packet = self._parse_packet(packet)
         self._key = self._message = None
-        if isinstance(packet, OpenPGP.PublicKeyPacket) or (hasattr(packet, '__getitem__') and isinstance(packet[0], OpenPGP.PublicKeyPacket)): # If it's a key (other keys are subclasses of this one)
+        if isinstance(packet, OpenPGP.PublicKeyPacket) or (hasattr(packet, '__getitem__') and isinstance(packet[0],
+                                                                                                         OpenPGP.PublicKeyPacket)):  # If it's a key (other keys are subclasses of this one)
             self._key = packet
         else:
             self._message = packet
 
     def key(self, keyid=None):
-        if not self._key: # No key
+        if not self._key:  # No key
             return None
         if isinstance(self._key, OpenPGP.Message):
             for p in self._key:
                 if isinstance(p, OpenPGP.PublicKeyPacket):
-                    if not keyid or p.fingerprint()[len(keyid)*-1:].upper() == keyid.upper():
+                    if not keyid or p.fingerprint()[len(keyid) * -1:].upper() == keyid.upper():
                         return p
         return self._key
 
@@ -58,7 +64,7 @@ class Wrapper:
             return False
         if s.key_algorithm_name() == 'DSA':
             verifier = key.verifier(self._encode_dsa_der(*s.data), h)
-        else: # RSA
+        else:  # RSA
             verifier = key.verifier(s.data[0], padding.PKCS1v15(), h)
 
         verifier.update(m)
@@ -66,7 +72,7 @@ class Wrapper:
         try:
             verifier.verify()
         except InvalidSignature:
-          return False
+            return False
 
         return True
 
@@ -85,13 +91,13 @@ class Wrapper:
             verifier = self.__class__(packet).verifier
 
         byhash = {
-            'MD5':       lambda m, s: verifier(hashes.MD5(), m, s),
+            'MD5': lambda m, s: verifier(hashes.MD5(), m, s),
             'RIPEMD160': lambda m, s: verifier(hashes.RIPEMD(), m, s),
-            'SHA1':      lambda m, s: verifier(hashes.SHA1(), m, s),
-            'SHA224':    lambda m, s: verifier(hashes.SHA224(), m, s),
-            'SHA256':    lambda m, s: verifier(hashes.SHA256(), m, s),
-            'SHA384':    lambda m, s: verifier(hashes.SHA384(), m, s),
-            'SHA512':    lambda m, s: verifier(hashes.SHA512(), m, s)
+            'SHA1': lambda m, s: verifier(hashes.SHA1(), m, s),
+            'SHA224': lambda m, s: verifier(hashes.SHA224(), m, s),
+            'SHA256': lambda m, s: verifier(hashes.SHA256(), m, s),
+            'SHA384': lambda m, s: verifier(hashes.SHA384(), m, s),
+            'SHA512': lambda m, s: verifier(hashes.SHA512(), m, s)
         }
 
         return m.verified_signatures({'RSA': byhash, 'DSA': byhash})
@@ -102,7 +108,9 @@ class Wrapper:
         else:
             packet = self._parse_packet(packet)
 
-        if isinstance(packet, OpenPGP.SecretKeyPacket) or isinstance(packet, RSAPrivateKey) or isinstance(packet, DSAPrivateKey) or (hasattr(packet, '__getitem__') and isinstance(packet[0], OpenPGP.SecretKeyPacket)):
+        if isinstance(packet, OpenPGP.SecretKeyPacket) or isinstance(packet, RSAPrivateKey) or isinstance(packet,
+                                                                                                          DSAPrivateKey) or (
+                hasattr(packet, '__getitem__') and isinstance(packet[0], OpenPGP.SecretKeyPacket)):
             key = packet
             message = self._message
         else:
@@ -110,7 +118,7 @@ class Wrapper:
             message = packet
 
         if not key or not message:
-            return None # Missing some data
+            return None  # Missing some data
 
         if isinstance(message, OpenPGP.Message):
             message = message.signature_and_data()[1]
@@ -143,22 +151,22 @@ class Wrapper:
             return [ctx.finalize()]
 
         sig.sign_data({'RSA': {
-                'MD5':       lambda m: doRSA(hashes.MD5, m),
-                'RIPEMD160': lambda m: doRSA(hashes.RIPEMD160, m),
-                'SHA1':      lambda m: doRSA(hashes.SHA1, m),
-                'SHA224':    lambda m: doRSA(hashes.SHA224, m),
-                'SHA256':    lambda m: doRSA(hashes.SHA256, m),
-                'SHA384':    lambda m: doRSA(hashes.SHA384, m),
-                'SHA512':    lambda m: doRSA(hashes.SHA512, m)
-            }, 'DSA': {
-                'MD5':       lambda m: doDSA(hashes.MD5, m),
-                'RIPEMD160': lambda m: doDSA(hashes.RIPME160, m),
-                'SHA1':      lambda m: doDSA(hashes.SHA1, m),
-                'SHA224':    lambda m: doDSA(hashes.SHA224, m),
-                'SHA256':    lambda m: doDSA(hashes.SHA256, m),
-                'SHA384':    lambda m: doDSA(hashes.SHA384, m),
-                'SHA512':    lambda m: doDSA(hashes.SHA512, m)
-            }})
+            'MD5': lambda m: doRSA(hashes.MD5, m),
+            'RIPEMD160': lambda m: doRSA(hashes.RIPEMD160, m),
+            'SHA1': lambda m: doRSA(hashes.SHA1, m),
+            'SHA224': lambda m: doRSA(hashes.SHA224, m),
+            'SHA256': lambda m: doRSA(hashes.SHA256, m),
+            'SHA384': lambda m: doRSA(hashes.SHA384, m),
+            'SHA512': lambda m: doRSA(hashes.SHA512, m)
+        }, 'DSA': {
+            'MD5': lambda m: doDSA(hashes.MD5, m),
+            'RIPEMD160': lambda m: doDSA(hashes.RIPME160, m),
+            'SHA1': lambda m: doDSA(hashes.SHA1, m),
+            'SHA224': lambda m: doDSA(hashes.SHA224, m),
+            'SHA256': lambda m: doDSA(hashes.SHA256, m),
+            'SHA384': lambda m: doDSA(hashes.SHA384, m),
+            'SHA512': lambda m: doDSA(hashes.SHA512, m)
+        }})
 
         return OpenPGP.Message([sig, message])
 
@@ -170,7 +178,7 @@ class Wrapper:
             packet = OpenPGP.Message.parse(packet)
 
         key = self.key(keyid)
-        if not key or not packet: # Missing some data
+        if not key or not packet:  # Missing some data
             return None
 
         if not keyid:
@@ -191,7 +199,7 @@ class Wrapper:
 
         def doDSA(h, m):
             return list(key.sign(h.new(m).digest()[0:int(Crypto.Util.number.size(key.q) / 8)],
-                Crypto.Random.random.StrongRandom().randint(1,key.q-1)))
+                                 Crypto.Random.random.StrongRandom().randint(1, key.q - 1)))
 
         def doRSA(h, m):
             ctx = key.signer(padding.PKCS1v15(), h())
@@ -199,22 +207,22 @@ class Wrapper:
             return [ctx.finalize()]
 
         sig.sign_data({'RSA': {
-                'MD5':       lambda m: doRSA(hashes.MD5, m),
-                'RIPEMD160': lambda m: doRSA(hashes.RIPEMD160, m),
-                'SHA1':      lambda m: doRSA(hashes.SHA1, m),
-                'SHA224':    lambda m: doRSA(hashes.SHA224, m),
-                'SHA256':    lambda m: doRSA(hashes.SHA256, m),
-                'SHA384':    lambda m: doRSA(hashes.SHA384, m),
-                'SHA512':    lambda m: doRSA(hashes.SHA512, m)
-            }, 'DSA': {
-                'MD5':       lambda m: doDSA(Crypto.Hash.MD5, m),
-                'RIPEMD160': lambda m: doDSA(Crypto.Hash.RIPEMD, m),
-                'SHA1':      lambda m: doDSA(Crypto.Hash.SHA, m),
-                'SHA224':    lambda m: doDSA(Crypto.Hash.SHA224, m),
-                'SHA256':    lambda m: doDSA(Crypto.Hash.SHA256, m),
-                'SHA384':    lambda m: doDSA(Crypto.Hash.SHA384, m),
-                'SHA512':    lambda m: doDSA(Crypto.Hash.SHA512, m),
-            }})
+            'MD5': lambda m: doRSA(hashes.MD5, m),
+            'RIPEMD160': lambda m: doRSA(hashes.RIPEMD160, m),
+            'SHA1': lambda m: doRSA(hashes.SHA1, m),
+            'SHA224': lambda m: doRSA(hashes.SHA224, m),
+            'SHA256': lambda m: doRSA(hashes.SHA256, m),
+            'SHA384': lambda m: doRSA(hashes.SHA384, m),
+            'SHA512': lambda m: doRSA(hashes.SHA512, m)
+        }, 'DSA': {
+            'MD5': lambda m: doDSA(Crypto.Hash.MD5, m),
+            'RIPEMD160': lambda m: doDSA(Crypto.Hash.RIPEMD, m),
+            'SHA1': lambda m: doDSA(Crypto.Hash.SHA, m),
+            'SHA224': lambda m: doDSA(Crypto.Hash.SHA224, m),
+            'SHA256': lambda m: doDSA(Crypto.Hash.SHA256, m),
+            'SHA384': lambda m: doDSA(Crypto.Hash.SHA384, m),
+            'SHA512': lambda m: doDSA(Crypto.Hash.SHA512, m),
+        }})
 
         return packet
 
@@ -224,14 +232,15 @@ class Wrapper:
         elif not isinstance(packet, OpenPGP.Message):
             packet = OpenPGP.Message.parse(packet)
 
-        if isinstance(packet, OpenPGP.SecretKeyPacket) or isinstance(packet, rsa.RSAPrivateKey) or (hasattr(packet, '__getitem__') and isinstance(packet[0], OpenPGP.SecretKeyPacket)):
+        if isinstance(packet, OpenPGP.SecretKeyPacket) or isinstance(packet, rsa.RSAPrivateKey) or (
+                hasattr(packet, '__getitem__') and isinstance(packet[0], OpenPGP.SecretKeyPacket)):
             keys = packet
         else:
             keys = self._key
             self._message = packet
 
         if not keys or not self._message:
-            return None # Missing some data
+            return None  # Missing some data
 
         if not isinstance(keys, rsa.RSAPrivateKey):
             keys = self.__class__(keys)
@@ -240,11 +249,11 @@ class Wrapper:
             if isinstance(p, OpenPGP.AsymmetricSessionKeyPacket):
                 if isinstance(keys, rsa.RSAPrivateKey):
                     sk = self.try_decrypt_session(keys, p.encrypted_data[2:])
-                elif len(p.keyid.replace('0','')) < 1:
+                elif len(p.keyid.replace('0', '')) < 1:
                     for k in keys.key:
                         sk = self.try_decrypt_session(self.convert_private_key(k), p.encyrpted_data[2:]);
                         if sk:
-                          break
+                            break
                 else:
                     key = keys.private_key(p.keyid)
                     sk = self.try_decrypt_session(key, p.encrypted_data[2:])
@@ -256,17 +265,17 @@ class Wrapper:
                 if r:
                     return r
 
-        return None # Failed
+        return None  # Failed
 
     @classmethod
     def try_decrypt_session(cls, key, edata):
         data = key.decrypt(edata, padding.PKCS1v15())
-        sk = data[1:len(data)-2]
+        sk = data[1:len(data) - 2]
         chk = unpack('!H', data[-2:])[0]
 
         sk_chk = 0
         for i in range(0, len(sk)):
-          sk_chk = (sk_chk + ord(sk[i:i+1])) % 65536
+            sk_chk = (sk_chk + ord(sk[i:i + 1])) % 65536
 
         if sk_chk != chk:
             return None
@@ -287,29 +296,32 @@ class Wrapper:
         to_encrypt += mdc.to_bytes()
 
         def doEncrypt(cipher):
-          ctx = cipher.encryptor()
-          return lambda x: ctx.update(x) + ctx.finalize()
+            ctx = cipher.encryptor()
+            return lambda x: ctx.update(x) + ctx.finalize()
 
-        encrypted = [OpenPGP.IntegrityProtectedDataPacket(self._block_pad_unpad(key_block_bytes, to_encrypt, doEncrypt(session_cipher)))]
+        encrypted = [OpenPGP.IntegrityProtectedDataPacket(
+            self._block_pad_unpad(key_block_bytes, to_encrypt, doEncrypt(session_cipher)))]
 
         if not isinstance(passphrases_and_keys, collections.Iterable) or hasattr(passphrases_and_keys, 'encode'):
             passphrases_and_keys = [passphrases_and_keys]
 
         for psswd in passphrases_and_keys:
-          if isinstance(psswd, OpenPGP.PublicKeyPacket):
-              if not psswd.key_algorithm in [1,2,3]:
-                  raise Exception("Only RSA keys are supported.")
-              rsa = self.__class__(psswd).public_key()
-              pkcs1 = Crypto.Cipher.PKCS1_v1_5.new(rsa)
-              esk = pkcs1.encrypt(pack('!B', symmetric_algorithm) + key + pack('!H', OpenPGP.checksum(key)))
-              esk = pack('!H', OpenPGP.bitlength(esk)) + esk
-              encrypted = [OpenPGP.AsymmetricSessionKeyPacket(psswd.key_algorithm, psswd.fingerprint(), esk)] + encrypted
-          elif hasattr(psswd, 'encode'):
-              psswd = psswd.encode('utf-8')
-              s2k = OpenPGP.S2K(Crypto.Random.new().read(10))
-              packet_cipher = cipher(s2k.make_key(psswd, key_bytes))(None)
-              esk = self._block_pad_unpad(key_block_bytes, pack('!B', symmetric_algorithm) + key, doEncrypt(packet_cipher))
-              encrypted = [OpenPGP.SymmetricSessionKeyPacket(s2k, esk, symmetric_algorithm)] + encrypted
+            if isinstance(psswd, OpenPGP.PublicKeyPacket):
+                if not psswd.key_algorithm in [1, 2, 3]:
+                    raise Exception("Only RSA keys are supported.")
+                rsa = self.__class__(psswd).public_key()
+                pkcs1 = Crypto.Cipher.PKCS1_v1_5.new(rsa)
+                esk = pkcs1.encrypt(pack('!B', symmetric_algorithm) + key + pack('!H', OpenPGP.checksum(key)))
+                esk = pack('!H', OpenPGP.bitlength(esk)) + esk
+                encrypted = [OpenPGP.AsymmetricSessionKeyPacket(psswd.key_algorithm, psswd.fingerprint(),
+                                                                esk)] + encrypted
+            elif hasattr(psswd, 'encode'):
+                psswd = psswd.encode('utf-8')
+                s2k = OpenPGP.S2K(Crypto.Random.new().read(10))
+                packet_cipher = cipher(s2k.make_key(psswd, key_bytes))(None)
+                esk = self._block_pad_unpad(key_block_bytes, pack('!B', symmetric_algorithm) + key,
+                                            doEncrypt(packet_cipher))
+                encrypted = [OpenPGP.SymmetricSessionKeyPacket(s2k, esk, symmetric_algorithm)] + encrypted
 
         return OpenPGP.Message(encrypted)
 
@@ -328,7 +340,7 @@ class Wrapper:
                     cipher = cipher(p.s2k.make_key(passphrase, key_bytes))
                     pad_amount = key_block_bytes - (len(p.encrypted_data) % key_block_bytes)
                     withiv = cipher(b'\0' * key_block_bytes).decryptor()
-                    data = withiv.update(p.encrypted_data + (pad_amount*b'\0'))
+                    data = withiv.update(p.encrypted_data + (pad_amount * b'\0'))
                     data += withiv.finalize()
                     data = data[:-pad_amount]
 
@@ -338,31 +350,32 @@ class Wrapper:
                     if not cipher:
                         continue
 
-                    decrypted = self.decrypt_packet(epacket, p.symmetric_algorithm, p.s2k.make_key(passphrase, key_bytes))
+                    decrypted = self.decrypt_packet(epacket, p.symmetric_algorithm,
+                                                    p.s2k.make_key(passphrase, key_bytes))
 
                 if decrypted:
                     return decrypted
 
-        return None # If we get here, we failed
+        return None  # If we get here, we failed
 
     def decrypt_secret_key(self, passphrase):
         if hasattr(passphrase, 'encode'):
             passphrase = passphrase.encode('utf-8')
 
-        packet = copy.copy(self._message or self._key) # Do not mutate original
+        packet = copy.copy(self._message or self._key)  # Do not mutate original
 
         cipher, key_bytes, key_block_bytes = self.get_cipher(packet.symmetric_algorithm)
         cipher = cipher(packet.s2k.make_key(passphrase, key_bytes))
         cipher = cipher(packet.encrypted_data[:key_block_bytes]).decryptor()
         pad_amount = key_block_bytes - (len(packet.encrypted_data[key_block_bytes:]) % key_block_bytes)
-        material = cipher.update(packet.encrypted_data[key_block_bytes:] + (pad_amount*b'\0'))
+        material = cipher.update(packet.encrypted_data[key_block_bytes:] + (pad_amount * b'\0'))
         material += cipher.finalize()
         material = material[:-pad_amount]
 
         if packet.s2k_useage == 254:
             chk = material[-20:]
             material = material[:-20]
-            if(chk != hashlib.sha1(material)):
+            if (chk != hashlib.sha1(material)):
                 return None
         else:
             chk = unpack('!H', material[-2:])[0]
@@ -389,12 +402,12 @@ class Wrapper:
         pad_amount = key_block_bytes - (len(epacket.data) % key_block_bytes)
         if isinstance(epacket, OpenPGP.IntegrityProtectedDataPacket):
             withiv = cipher(b'\0' * key_block_bytes).decryptor()
-            data = withiv.update(epacket.data + (pad_amount*b'\0'))
+            data = withiv.update(epacket.data + (pad_amount * b'\0'))
             data += withiv.finalize()
             data = data[:-pad_amount]
-            prefix = data[0:key_block_bytes+2]
+            prefix = data[0:key_block_bytes + 2]
             mdc = data[-22:][2:]
-            data = data[key_block_bytes+2:-22]
+            data = data[key_block_bytes + 2:-22]
 
             mkMDC = hashlib.sha1(prefix + data + b'\xd3\x14').digest()
             if mdc != mkMDC:
@@ -406,10 +419,10 @@ class Wrapper:
                 return None
         else:
             # No MDC means decrypt with resync
-            edata = epacket.data[key_block_bytes+2:]
+            edata = epacket.data[key_block_bytes + 2:]
             pad_amount = key_block_bytes - (len(edata) % key_block_bytes)
-            withiv = cipher(epacket.data[2:key_block_bytes+2]).decryptor()
-            data = withiv.update(edata + (pad_amount*b'\0'))
+            withiv = cipher(epacket.data[2:key_block_bytes + 2]).decryptor()
+            data = withiv.update(edata + (pad_amount * b'\0'))
             data += withiv.finalize()
             data = data[:-pad_amount]
             try:
@@ -421,16 +434,18 @@ class Wrapper:
 
     @classmethod
     def _parse_packet(cls, packet):
-        if isinstance(packet, OpenPGP.Packet) or isinstance(packet, OpenPGP.Message) or isinstance(packet, RSAPublicKey) or isinstance(packet, RSAPrivateKey) or isinstance(packet, DSAPublicKey) or isinstance(packet, DSAPrivateKey):
+        if isinstance(packet, OpenPGP.Packet) or isinstance(packet, OpenPGP.Message) or isinstance(packet,
+                                                                                                   RSAPublicKey) or isinstance(
+                packet, RSAPrivateKey) or isinstance(packet, DSAPublicKey) or isinstance(packet, DSAPrivateKey):
             return packet
         elif isinstance(packet, tuple) or isinstance(packet, list):
             if sys.version_info[0] == 2 and isinstance(packet[0], long) or isinstance(packet[0], int):
                 data = []
                 for i in packet:
-                    data.append(Crypto.Util.number.long_to_bytes(i)) # OpenPGP likes bytes
+                    data.append(Crypto.Util.number.long_to_bytes(i))  # OpenPGP likes bytes
             else:
                 data = packet
-            return OpenPGP.SecretKeyPacket(keydata=data, algorithm=1, version=3) # V3 for fingerprint with no timestamp
+            return OpenPGP.SecretKeyPacket(keydata=data, algorithm=1, version=3)  # V3 for fingerprint with no timestamp
         else:
             return OpenPGP.Message.parse(packet)
 
@@ -438,8 +453,8 @@ class Wrapper:
     def get_cipher(cls, algo):
         def cipher(m, ks, bs):
             return (lambda k: lambda iv:
-                    Cipher(m(k), modes.CFB(iv or b'\0'*bs), default_backend()),
-                ks, bs)
+            Cipher(m(k), modes.CFB(iv or b'\0' * bs), default_backend()),
+                    ks, bs)
 
         if algo == 2:
             return cipher(algorithms.TripleDES, 24, 8)
@@ -454,11 +469,13 @@ class Wrapper:
         elif algo == 9:
             return cipher(algorithms.AES, 32, 16)
 
-        return (None,None,None) # Not supported
+        return (None, None, None)  # Not supported
 
     @classmethod
     def convert_key(cls, packet, private=False):
-        if isinstance(packet, RSAPrivateKey) or isinstance(packet, RSAPublicKey) or isinstance(packet, DSAPublicKey) or isinstance(packet, DSAPrivateKey):
+        if isinstance(packet, RSAPrivateKey) or isinstance(packet, RSAPublicKey) or isinstance(packet,
+                                                                                               DSAPublicKey) or isinstance(
+                packet, DSAPrivateKey):
             if (not private) and (isinstance(packet, DSAPrivateKey) or isinstance(packet, RSAPrivateKey)):
                 return packet.public_key()
             else:
@@ -469,29 +486,29 @@ class Wrapper:
             packet = packet[0]
 
         if packet.key_algorithm_name() == 'DSA':
-          params = dsa.DSAParameterNumbers(
-                    cls._bytes_to_long(packet.key['p']),
-                    cls._bytes_to_long(packet.key['q']),
-                    cls._bytes_to_long(packet.key['g']))
-          public = dsa.DSAPublicNumbers(
-                    cls._bytes_to_long(packet.key['y']),
-                    params)
-          if private:
-              return dsa.DSAPrivateNumbers(cls._bytes_to_long(packet.key['x']), public).private_key(openssl.backend)
-          else:
-              return public.public_key(openssl.backend)
-        else: # RSA
-          public = rsa.RSAPublicNumbers(cls._bytes_to_long(packet.key['e']), cls._bytes_to_long(packet.key['n']))
-          if private:
-              d = cls._bytes_to_long(packet.key['d'])
-              p = cls._bytes_to_long(packet.key['q'])
-              q = cls._bytes_to_long(packet.key['p'])
-              dmp1 = rsa.rsa_crt_dmp1(d, p)
-              dmq1 = rsa.rsa_crt_dmp1(d, q)
-              u = cls._bytes_to_long(packet.key['u'])
-              return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, u, public).private_key(default_backend())
-          else:
-              return public.public_key(default_backend())
+            params = dsa.DSAParameterNumbers(
+                cls._bytes_to_long(packet.key['p']),
+                cls._bytes_to_long(packet.key['q']),
+                cls._bytes_to_long(packet.key['g']))
+            public = dsa.DSAPublicNumbers(
+                cls._bytes_to_long(packet.key['y']),
+                params)
+            if private:
+                return dsa.DSAPrivateNumbers(cls._bytes_to_long(packet.key['x']), public).private_key(openssl.backend)
+            else:
+                return public.public_key(openssl.backend)
+        else:  # RSA
+            public = rsa.RSAPublicNumbers(cls._bytes_to_long(packet.key['e']), cls._bytes_to_long(packet.key['n']))
+            if private:
+                d = cls._bytes_to_long(packet.key['d'])
+                p = cls._bytes_to_long(packet.key['q'])
+                q = cls._bytes_to_long(packet.key['p'])
+                dmp1 = rsa.rsa_crt_dmp1(d, p)
+                dmq1 = rsa.rsa_crt_dmp1(d, q)
+                u = cls._bytes_to_long(packet.key['u'])
+                return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, u, public).private_key(default_backend())
+            else:
+                return public.public_key(default_backend())
 
     @classmethod
     def convert_public_key(cls, packet):
@@ -503,15 +520,15 @@ class Wrapper:
 
     @classmethod
     def _bytes_to_long(cls, b):
-      if hasattr(int, 'from_bytes'):
-        return int.from_bytes(b, byteorder='big', signed=False)
-      else:
-        return long(b.encode('hex'), 16)
+        if hasattr(int, 'from_bytes'):
+            return int.from_bytes(b, byteorder='big', signed=False)
+        else:
+            return long(b.encode('hex'), 16)
 
     @classmethod
     def _block_pad_unpad(cls, siz, bs, go):
         pad_amount = siz - (len(bs) % siz)
-        return go(bs + b'\0'*pad_amount)[:-pad_amount]
+        return go(bs + b'\0' * pad_amount)[:-pad_amount]
 
     @classmethod
     def _encode_dsa_der(cls, r, s):
@@ -533,7 +550,7 @@ class Wrapper:
 
         rlen = unpack('!B', der[0:1])[0]
 
-        r = der[1:rlen+1]
+        r = der[1:rlen + 1]
         while r[0:1] == b'\x00':
             r = r[1:]
 

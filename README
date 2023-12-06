@@ -1,3 +1,16 @@
 OpenPGP-Python
 
 This is a port of OpenPGP-PHP <http://github.com/bendiken/openpgp-php> to python.
+
+
+## 安装
+```
+conda install pycrypto
+安装好后，可以在python的安装目录下的Lib\site-packages目录下找到pycrypto的安装目录，里面有个文件夹crypto
+复制出来，改成Crypto
+pip install pycrypto -i https://pypi.org/simple
+pip install pycrypto -i https://mirrors.cernet.edu.cn/list/pypi  # 校园网联合镜像源
+pip install pycryptodome
+```
+
+pycrypto中github库

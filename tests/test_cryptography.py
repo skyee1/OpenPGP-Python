@@ -5,6 +5,7 @@ import OpenPGP.cryptography
 import Crypto.Util
 import Crypto.PublicKey.RSA
 
+
 class TestMessageVerification:
     def oneMessage(self, pkey, path):
         pkeyM = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + pkey, 'rb').read())
@@ -33,7 +34,7 @@ class TestMessageVerification:
         nose.tools.assert_equal(sign.verify(reparsedM), reparsedM.signatures())
 
     # TODO: something is wrong with DSA
-    #def testSigningMessagesDSA(self):
+    # def testSigningMessagesDSA(self):
     #    wkey = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/secring.gpg', 'rb').read())
     #    data = OpenPGP.LiteralDataPacket('This is text.', 'u', 'stuff.txt')
     #    dsa = OpenPGP.cryptography.Wrapper(wkey).private_key('7F69FA376B020509')
@@ -41,11 +42,12 @@ class TestMessageVerification:
     #    reparsedM = OpenPGP.Message.parse(m)
     #    nose.tools.assert_equal(OpenPGP.cryptography.Wrapper(wkey).verify(reparsedM), reparsedM.signatures())
     #
-    #def testUncompressedOpsDSA(self):
+    # def testUncompressedOpsDSA(self):
     #    self.oneMessage('pubring.gpg', 'uncompressed-ops-dsa.gpg')
     #
-    #def testUncompressedOpsDSAsha384(self):
+    # def testUncompressedOpsDSAsha384(self):
     #    self.oneMessage('pubring.gpg', 'uncompressed-ops-dsa-sha384.txt.gpg')
+
 
 class TestKeyVerification:
     def oneKeyRSA(self, path):
@@ -76,14 +78,15 @@ class TestKeyVerification:
     def testHelloKey(self):
         self.oneKeyRSA("helloKey.gpg")
 
+
 class TestDecryption:
     def oneSymmetric(self, pss, cnt, path):
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/' + path, 'rb').read())
         m2 = OpenPGP.cryptography.Wrapper(m).decrypt_symmetric(pss)
-        while(isinstance(m2[0], OpenPGP.CompressedDataPacket)):
+        while (isinstance(m2[0], OpenPGP.CompressedDataPacket)):
             m2 = m2[0].data
         for p in m2:
-            if(isinstance(p,OpenPGP.LiteralDataPacket)):
+            if (isinstance(p, OpenPGP.LiteralDataPacket)):
                 nose.tools.assert_equal(p.data, cnt)
 
     def testDecryptAES(self):
@@ -113,11 +116,12 @@ class TestDecryption:
         m = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/hello.gpg', 'rb').read())
         key = OpenPGP.Message.parse(open(os.path.dirname(__file__) + '/data/helloKey.gpg', 'rb').read())
         m2 = OpenPGP.cryptography.Wrapper(key).decrypt(m)
-        while(isinstance(m2[0], OpenPGP.CompressedDataPacket)):
+        while (isinstance(m2[0], OpenPGP.CompressedDataPacket)):
             m2 = m2[0].data
         for p in m2:
-            if(isinstance(p,OpenPGP.LiteralDataPacket)):
+            if (isinstance(p, OpenPGP.LiteralDataPacket)):
                 nose.tools.assert_equal(p.data, b"hello\n")
+
 
 class TestEncryption:
     def testEncryptSymmetric(self):
